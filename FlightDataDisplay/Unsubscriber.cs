@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using GenericsBasics.Application;
+using FlightDataDisplay.Application;
 
-namespace GenericsBasics.Application
+namespace FlightDataDisplay.Application
 {
     public class Unsubscriber<BaggageInfo> : IDisposable
     {

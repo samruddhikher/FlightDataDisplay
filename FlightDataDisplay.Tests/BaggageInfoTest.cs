@@ -1,7 +1,7 @@
-using GenericsBasics.Domain;
+using FlightDataDisplay.Domain;
 using Microsoft.Extensions.Options;
 using Xunit.Sdk;
-namespace GenericsBasics.Tests;
+namespace FlightDataDisplay.Tests;
 
 public class BaggageInfoTest
 {

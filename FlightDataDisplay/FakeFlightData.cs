@@ -1,13 +1,13 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using GenericsBasics.Domain;
+using FlightDataDisplay.Domain;
 using Faker;
 using System.Timers;
 using Microsoft.VisualBasic;
 using System;
 using System.Linq;
 
-namespace GenericsBasics.Application
+namespace FlightDataDisplay.Application
 {
     class FakeFlightData : IFlightDataRepository
     {
@@ -24,7 +24,7 @@ namespace GenericsBasics.Application
         {
             return new BaggageInfo()
             {
-                flight = Faker.RandomNumber.Next(500, 5000),
+                flight = Faker.Name.First().ToUpper().Substring(0,2).ToString()+ " " + Faker.RandomNumber.Next(500, 5000).ToString(),
                 from = Faker.Address.City(),
                 carousel = Faker.RandomNumber.Next(0, 5)
             };

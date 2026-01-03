@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using GenericsBasics.Domain;
-using GenericsBasics.Application;
+using FlightDataDisplay.Domain;
+using FlightDataDisplay.Application;
 
-namespace GenericsBasics.Presentation
+namespace FlightDataDisplay.Presentation
 {
     public class ArrivalsMonitor : IObserver<BaggageInfo>
     {
@@ -41,7 +41,7 @@ namespace GenericsBasics.Presentation
 
             if (info.carousel is 0)
             {
-                string flightNumber = string.Format("{0,5}", info.flight);
+                string flightNumber = string.Format("{0,6}", info.flight);
                 for (int index = _flights.Count - 1; index >= 0; index--)
                 {
                     string flightInfo = _flights[index];

@@ -2,10 +2,10 @@
 using System.Timers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using GenericsBasics.Domain;
+using FlightDataDisplay.Domain;
 using System.Linq;
 
-namespace GenericsBasics.Application
+namespace FlightDataDisplay.Application
 {
     public class BaggageHandler : IObservable<BaggageInfo>
     {
@@ -17,7 +17,7 @@ namespace GenericsBasics.Application
         public BaggageHandler(IFlightDataRepository repo)
         {
             _repo = repo;
-            timer = new System.Timers.Timer(TimeSpan.FromSeconds(2).TotalMilliseconds);
+            timer = new System.Timers.Timer(TimeSpan.FromSeconds(20).TotalMilliseconds);
             timer.Enabled = true;
 
             deleteTimer = new System.Timers.Timer(TimeSpan.FromSeconds(4).TotalMilliseconds);
@@ -39,9 +39,9 @@ namespace GenericsBasics.Application
         }
 
         // Called to indicate all baggage is now unloaded.
-        public async Task BaggageStatus(int flightNumber) => await BaggageStatus(flightNumber, string.Empty, 0);
+        public async Task BaggageStatus(string flightNumber) => await BaggageStatus(flightNumber, string.Empty, 0);
 
-        public async Task BaggageStatus(int flightNumber, string from, int carousel)
+        public async Task BaggageStatus(string flightNumber, string from, int carousel)
         {
             var info = new BaggageInfo()
             {

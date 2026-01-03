@@ -1,11 +1,12 @@
 ﻿using System.Threading;
 using System.Threading.Tasks;
-using GenericsBasics.Application;
-using GenericsBasics.Domain;
+using FlightDataDisplay.Application;
+using FlightDataDisplay.Domain;
+using FlightDataDisplay.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace GenericsBasics.Presentation
+namespace FlightDataDisplay.Presentation
 {
     class Program
     {
@@ -17,7 +18,7 @@ namespace GenericsBasics.Presentation
                services.AddSingleton<BaggageHandler>();
                services.AddSingleton<ArrivalsMonitor>(name=> new ArrivalsMonitor("Security Exit"));
                //services.AddSingleton<ArrivalsMonitor>(name=> new ArrivalsMonitor("BaggageClaimMonitor"));
-               services.AddScoped<IFlightDataRepository, FakeFlightData>()
+               services.AddScoped<IFlightDataRepository, OpenskyFlightData>()
                .BuildServiceProvider();
 
                services.AddHostedService<ApplicationRunner>();

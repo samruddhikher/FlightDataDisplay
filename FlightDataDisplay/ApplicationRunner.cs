@@ -2,11 +2,11 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using GenericsBasics.Application;
-using GenericsBasics.Domain;
+using FlightDataDisplay.Application;
+using FlightDataDisplay.Domain;
 using Microsoft.Extensions.Hosting;
 
-namespace GenericsBasics.Presentation
+namespace FlightDataDisplay.Presentation
 {
     class ApplicationRunner : IHostedService
     {
@@ -55,19 +55,22 @@ namespace GenericsBasics.Presentation
 
         private void OnStopping()
         {
-            throw new NotImplementedException();
+            Console.WriteLine("Unsubscribing observers");
+            _observer1.Unsubscribe();
+            //throw new NotImplementedException();
         }
 
         private void OnStopped()
         {
-            throw new NotImplementedException();
+            //Console.WriteLine("Stopping applicaton");
+            //throw new NotImplementedException();
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
             _observer1.Unsubscribe();
-
-            return Task.FromCanceled(cancellationToken);
+            return Task.CompletedTask;
+            //return Task.FromCanceled(cancellationToken);
         }
     }
 }

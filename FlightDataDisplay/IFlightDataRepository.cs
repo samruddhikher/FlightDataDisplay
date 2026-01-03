@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace GenericsBasics.Domain
+namespace FlightDataDisplay.Domain
 {
     public interface IFlightDataRepository
     {
