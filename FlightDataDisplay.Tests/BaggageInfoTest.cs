@@ -8,12 +8,12 @@ public class BaggageInfoTest
     [Fact]
     public void Test1()
     {
-        int expectedflight = 841;
+        string expectedflight = "LH 841";
         string expectedfrom = "Pandora";
         int expectedCarousel = 0;
         var actual = new BaggageInfo()
         {
-            flight = 841,
+            flight = "841",
             from = expectedfrom,
             carousel = expectedCarousel
         };
