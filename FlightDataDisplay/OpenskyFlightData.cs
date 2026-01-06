@@ -10,113 +10,178 @@ using System.Threading.Tasks;
 using System.Timers;
 using FlightDataDisplay.Domain;
 using Newtonsoft.Json;
-using Ibistic.Public.OpenAirportData;
-using Ibistic.Public.OpenAirportData.OpenFlightsData;
-using Ibistic.Public.OpenAirportData.MemoryDatabase;
+using System.Collections.Frozen;
 namespace FlightDataDisplay.Infrastructure
 {
-    class OpenskyFlightData : IFlightDataRepository
+    class OpenskyFlightData : IFlightDataRepository ,IDisposable
     {
-        public static HttpClient client = new HttpClient();
-        public string icoa = "EDDF";
-
-        string clientId = "mihirk517-api-client";
-        string clientSecret = "CAZL39X78pd7oN9WGFw0ek4keXQkK1tz";
-        string token = string.Empty;
-        List<FlightArrival> Flights = new List<FlightArrival>();
-        OpenFlightsDataAirportProvider airportProvider;
-        IEnumerable<Airport> airports;
-        AirportIataCodeDatabase airportCodes;
-
-
-
-        System.Timers.Timer OpenSkytimer = new System.Timers.Timer() { Interval = TimeSpan.FromMinutes(30).TotalMilliseconds };
-        public OpenskyFlightData()
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IAirportResolver _airportResolver;
+        private readonly HttpClient _client;
+        private readonly Timer _refreshTimer;
+        private const int MinCarousel = 1;
+        private const int MaxCarousel = 15;
+        private const int RefreshIntervalMinutes = 30;
+        private const string OpenSkyAuthUrl = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token";
+        private const string OpenSkyApiBaseUrl = "https://opensky-network.org/api";
+        private readonly string _clientId;
+        private readonly string _clientSecret;
+        private readonly string _airportIcao;
+        List<FlightArrival> _flights;
+        private string _accessToken;
+        private bool _disposed;
+        public OpenskyFlightData(IHttpClientFactory httpClientFactory, IAirportResolver airportResolver, string clientId,
+            string clientSecret,
+            string airportIcao = "EDDF")
         {
-            OpenSkytimer.Enabled = true;
-            OpenSkytimer.Elapsed += GetOpenSkyData;
-            GetOpenSkyData(null, null);
-            OpenSkytimer.Start();
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+            _airportResolver = airportResolver ?? throw new ArgumentNullException(nameof(airportResolver));
+            _clientId = clientId ?? throw new ArgumentNullException(nameof(clientId));
+            _clientSecret = clientSecret ?? throw new ArgumentNullException(nameof(clientSecret));
+            _airportIcao = airportIcao ?? throw new ArgumentNullException(nameof(airportIcao));
+            _client = _httpClientFactory.CreateClient("OpenSky");
+            _flights = new List<FlightArrival>();
+            _refreshTimer = new Timer(TimeSpan.FromMinutes(RefreshIntervalMinutes).TotalMilliseconds)
+            {
+                AutoReset = true
+            };
+            _refreshTimer.Elapsed += OnRefreshTimerElapsed;
 
-            airportProvider = new OpenFlightsDataAirportProvider("airports.cache");
-            airports = airportProvider.GetAllAirports();
-            airportCodes = new AirportIataCodeDatabase();
-	        airportCodes.AddOrUpdateAirports(airportProvider.GetAllAirports(), true, true);
+            // Initial data fetch
+            _ = RefreshFlightDataAsync();
+
+            _refreshTimer.Start();
         }
 
-        private async void GetOpenSkyData(object sender, ElapsedEventArgs e)
+        private async void OnRefreshTimerElapsed(object sender, ElapsedEventArgs e)
         {
-            token = await GetOpenSkyToken(clientId, clientSecret);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            // OpenSky requires Unix timestamps (seconds)
-            long begin = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeSeconds();
-            long end = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            string url = $"https://opensky-network.org/api/flights/arrival?airport={icoa}&begin={begin}&end={end}";
-
-            HttpResponseMessage response;
-            string content = string.Empty;
+            await RefreshFlightDataAsync();
+        }
+        private async Task RefreshFlightDataAsync()
+        {
             try
             {
-                response = await client.GetAsync(url);
-                if (response.IsSuccessStatusCode) content = await response.Content.ReadAsStringAsync();
-                //Console.WriteLine(response.StatusCode + response.Content.ToString());
+                await AuthenticateAsync();
+                await FetchFlightDataAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error refreshing flight data: {ex.Message}");
+            }
+        }
 
+        private async Task AuthenticateAsync()
+        {
+            try
+            {
+                _accessToken = await GetAccessTokenAsync(_clientId, _clientSecret);
+                _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
             }
             catch (HttpRequestException ex)
             {
-                Console.Error.WriteLine($"Error in getting data from Opensky {ex.Message}");
+                Console.Error.WriteLine($"Authentication failed: {ex.Message}");
+                throw;
             }
-            //Console.WriteLine(content);
-            Flights = JsonConvert.DeserializeObject<List<FlightArrival>>(content);
         }
-
-        public async Task<string> GetOpenSkyToken(string clientId, string clientSecret)
+        private async Task FetchFlightDataAsync()
         {
-            using HttpClient client = new HttpClient();
             try
             {
-                var requestData = new FormUrlEncodedContent(new[]
-     {
-        new KeyValuePair<string, string>("grant_type", "client_credentials"),
-        new KeyValuePair<string, string>("client_id", clientId),
-        new KeyValuePair<string, string>("client_secret", clientSecret)
-    });    // OpenSky OAuth2 token endpoint
-                var response = await client.PostAsync("https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token", requestData);
-                var json = await response.Content.ReadAsStringAsync();
+                var url = BuildApiUrl(_airportIcao);
+                var response = await _client.GetAsync(url);
 
-                // Extract access_token from JSON response
-                using (var doc = JsonDocument.Parse(json))
+                if (!response.IsSuccessStatusCode)
                 {
-                    token = doc.RootElement.GetProperty("access_token").GetString();
+                    Console.Error.WriteLine($"API request failed with status: {response.StatusCode}");
+                    return;
                 }
 
+                var content = await response.Content.ReadAsStringAsync();
+                var flights = JsonConvert.DeserializeObject<List<FlightArrival>>(content);
+
+                if (flights != null)
+                {
+                    _flights = flights;
+                }
             }
-            catch (HttpRequestException e)
+            catch (HttpRequestException ex)
             {
-                Console.Error.WriteLine($"Error in getting Opensky Token {e.Message}");
+                Console.Error.WriteLine($"Error fetching flight data: {ex.Message}");
             }
-            return token;
+            catch (Newtonsoft.Json.JsonException ex)
+            {
+                Console.Error.WriteLine($"Error parsing flight data: {ex.Message}");
+            }
         }
-        public async Task<BaggageInfo> GetAllAsync()
+        private static string BuildApiUrl(string airportIcao)
         {
-            string flight = Flights.FirstOrDefault().CallSign;
-            string from = Flights.FirstOrDefault().EstDepartureAirport;
-            //airportCodes.TryGetAirport(from,out Airport airport);
+            var begin = DateTimeOffset.UtcNow.AddDays(-1).ToUnixTimeSeconds();
+            var end = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            return $"{OpenSkyApiBaseUrl}/flights/arrival?airport={airportIcao}&begin={begin}&end={end}";
+        }
+
+        public async Task<string> GetAccessTokenAsync(string clientId, string clientSecret)
+        {
+            var requestData = new FormUrlEncodedContent(new[]
+
+                {
+                    new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                    new KeyValuePair<string, string>("client_id", clientId),
+                    new KeyValuePair<string, string>("client_secret", clientSecret)
+                });    // OpenSky OAuth2 token endpoint
+            var response = await _client.PostAsync(OpenSkyAuthUrl, requestData);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync();
 
 
-            Flights.RemoveAll(x => x.CallSign == flight);
-            return new BaggageInfo
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.GetProperty("access_token").GetString();
+        }
+        public Task<BaggageInfo> GetAllAsync()
+        {
+            if (_flights == null || !_flights.Any())
             {
-                flight = flight,
-                from = from,
-                carousel = Faker.RandomNumber.Next(1, 15)
+                return null;
+            }
 
+            var flight = _flights.First();
+            var originAirport = _airportResolver.GetByIcao(flight.EstDepartureAirport);
+
+            _flights.RemoveAt(0);
+
+            var baggageInfo = new BaggageInfo
+            {
+                flight = flight.CallSign ?? "Unknown",
+                from = originAirport?.City ?? flight.EstDepartureAirport ?? "Unknown",
+                carousel = Random.Shared.Next(MinCarousel, MaxCarousel + 1)
             };
 
+            return Task.FromResult(baggageInfo);
+        }
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        public record FlightArrival(string icao24, long firstSeen, string EstDepartureAirport,
-                            long lastSeen, string estArrivalAirport, string CallSign);
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                _refreshTimer?.Stop();
+                _refreshTimer?.Dispose();
+                // Note: Don't dispose _client if using IHttpClientFactory
+            }
+
+            _disposed = true;
+        }
     }
 
+    public record FlightArrival(string icao24, long firstSeen, string EstDepartureAirport,
+                        long lastSeen, string estArrivalAirport, string CallSign);
 }
+
+

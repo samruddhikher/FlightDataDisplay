@@ -7,7 +7,7 @@ namespace FlightDataDisplay.Domain
     public struct BaggageInfo
     {
         public string flight;
-        public string? from;
+        public string from;
         public int carousel;
     }
 
