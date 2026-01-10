@@ -4,7 +4,7 @@ using System.Text;
 
 namespace FlightDataDisplay.Domain
 {
-    public struct BaggageInfo
+    public class BaggageInfo
     {
         public string flight;
         public string from;

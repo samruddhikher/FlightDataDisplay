@@ -12,6 +12,7 @@ using FlightDataDisplay.Domain;
 using Newtonsoft.Json;
 using System.Collections.Frozen;
 using OpenSky;
+using Faker;
 namespace FlightDataDisplay.Infrastructure
 {
     class OpenskyFlightData : IFlightDataRepository ,IDisposable
@@ -143,7 +144,7 @@ namespace FlightDataDisplay.Infrastructure
         {
             if (_flights == null || !_flights.Any())
             {
-                return null;
+                return Task.FromResult<BaggageInfo>(null);   
             }
             
             var flight = _flights.First();

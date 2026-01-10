@@ -71,6 +71,10 @@ namespace FlightDataDisplay.Application
         public async void BaggageStatus(object sender, ElapsedEventArgs e)
         {
             BaggageInfo info = await _repo.GetAllAsync();
+            if(info ==  null)
+            {
+                return;
+            }
 
             if (info.carousel > 0)
             {
