@@ -8,8 +8,9 @@ using FlightDataDisplay.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Builder;
 using System.IO;
+using FlightDataDisplay.Pages;
 
 namespace FlightDataDisplay.Presentation
 {
@@ -17,55 +18,113 @@ namespace FlightDataDisplay.Presentation
     {
         static async Task Main(string[] args)
         {
-            var host = Host.CreateDefaultBuilder(args)
-            .ConfigureAppConfiguration((context,config) =>
+            var builder = WebApplication.CreateBuilder(args);
+
+            builder.Configuration.SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile($"appsettings{builder.Environment.EnvironmentName}.json", optional: true);
+            if (builder.Environment.IsDevelopment())
             {
-                config.SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json",optional:true,reloadOnChange:true)
-                .AddJsonFile($"appsettings{context.HostingEnvironment.EnvironmentName}.json",optional:true);
-                if(context.HostingEnvironment.IsDevelopment())
-                {
-                    config.AddUserSecrets<Program>();
-                }
+                builder.Configuration.AddUserSecrets<Program>();
+            }
+            builder.Configuration.AddEnvironmentVariables(prefix: "FLIGHTDATADISPLAY_");
+            builder.Configuration.AddCommandLine(args);
 
-                config.AddEnvironmentVariables(prefix: "FLIGHTDATADISPLAY_");
+            // Add Blazor Server services
+            builder.Services.AddRazorPages();
+            builder.Services.AddServerSideBlazor();
 
-                config.AddCommandLine(args);
-            })
+            builder.Services.AddSingleton<BaggageHandler>();
+            builder.Services.AddSingleton<ArrivalsMonitor>(name => new ArrivalsMonitor("Security Exit"));
+            builder.Services.AddSingleton<IAirportResolver, AirportResolver>();
+            builder.Services.AddHttpClient("OpenSky", client =>
+           {
+               client.Timeout = TimeSpan.FromSeconds(30);
+           });
+            //services.AddSingleton<ArrivalsMonitor>(name=> new ArrivalsMonitor("BaggageClaimMonitor"));
+            builder.Services.AddSingleton<IFlightDataRepository>(sp =>
+           {
+               var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+               var airportResolver = sp.GetRequiredService<IAirportResolver>();
+               var configuration = sp.GetRequiredService<IConfiguration>();
 
-     
-            .ConfigureServices((context, services) =>
+               var clientId = configuration["OpenSky:ClientId"];
+               var clientSecret = configuration["OpenSky:ClientSecret"];
+               var airportIcao = configuration["OpenSky:AirportIcao"] ?? "EDDF";
+
+               //Console.WriteLine(clientId, clientSecret);
+
+               return new OpenskyFlightData(httpClientFactory, airportResolver, clientId, clientSecret, airportIcao);
+           });
+            builder.Services.AddHostedService<ApplicationRunner>();
+            var app = builder.Build();
+
+            if (!app.Environment.IsDevelopment())
             {
-                IConfiguration configuration = context.Configuration;
-                //Console.WriteLine("secrets" + configuration["OpenSky:ClientId"] + configuration["OpenSky:ClientSecret"]);
-                services.AddSingleton<BaggageHandler>();
-                services.AddSingleton<ArrivalsMonitor>(name => new ArrivalsMonitor("Security Exit"));
-                services.AddSingleton<IAirportResolver, AirportResolver>();
-                services.AddHttpClient("OpenSky", client =>
-                {
-                    client.Timeout = TimeSpan.FromSeconds(30);
-                });
-                //services.AddSingleton<ArrivalsMonitor>(name=> new ArrivalsMonitor("BaggageClaimMonitor"));
-                services.AddSingleton<IFlightDataRepository>(sp =>
-                {
-                    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-                    var airportResolver = sp.GetRequiredService<IAirportResolver>();
+                app.UseExceptionHandler("/Error");
+                app.UseHsts();
+            }
 
-                    var clientId = configuration["OpenSky:ClientId"];
-                    var clientSecret = configuration["OpenSky:ClientSecret"];
-                    var airportIcao = configuration["OpenSky:AirportIcao"] ?? "EDDF";
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
+            app.UseRouting();
 
-                    //Console.WriteLine(clientId, clientSecret);
+            //app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
-                    return new OpenskyFlightData(httpClientFactory, airportResolver, clientId, clientSecret, airportIcao);
-                })
-               .BuildServiceProvider();
+            app.MapBlazorHub();
+            app.MapFallbackToPage("/_Host");
 
-                services.AddHostedService<ApplicationRunner>();
+            app.Run();
 
-            }).Build();
+            /* var host = Host.CreateDefaultBuilder(args)
+             .ConfigureAppConfiguration((context, config) =>
+             {
+                 config.SetBasePath(Directory.GetCurrentDirectory())
+                 .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                 .AddJsonFile($"appsettings{context.HostingEnvironment.EnvironmentName}.json", optional: true);
+                 if (context.HostingEnvironment.IsDevelopment())
+                 {
+                     config.AddUserSecrets<Program>();
+                 }
 
-            await host.RunAsync();
+                 config.AddEnvironmentVariables(prefix: "FLIGHTDATADISPLAY_");
+
+                 config.AddCommandLine(args);
+             })
+
+
+             .ConfigureServices((context, services) =>
+             {
+                 IConfiguration configuration = context.Configuration;
+                 //Console.WriteLine("secrets" + configuration["OpenSky:ClientId"] + configuration["OpenSky:ClientSecret"]);
+                 services.AddSingleton<BaggageHandler>();
+                 services.AddSingleton<ArrivalsMonitor>(name => new ArrivalsMonitor("Security Exit"));
+                 services.AddSingleton<IAirportResolver, AirportResolver>();
+                 services.AddHttpClient("OpenSky", client =>
+                 {
+                     client.Timeout = TimeSpan.FromSeconds(30);
+                 });
+                 //services.AddSingleton<ArrivalsMonitor>(name=> new ArrivalsMonitor("BaggageClaimMonitor"));
+                 services.AddSingleton<IFlightDataRepository>(sp =>
+                 {
+                     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+                     var airportResolver = sp.GetRequiredService<IAirportResolver>();
+
+                     var clientId = configuration["OpenSky:ClientId"];
+                     var clientSecret = configuration["OpenSky:ClientSecret"];
+                     var airportIcao = configuration["OpenSky:AirportIcao"] ?? "EDDF";
+
+                     //Console.WriteLine(clientId, clientSecret);
+
+                     return new OpenskyFlightData(httpClientFactory, airportResolver, clientId, clientSecret, airportIcao);
+                 })
+                .BuildServiceProvider();
+
+                 services.AddHostedService<ApplicationRunner>();
+
+             }).Build();
+
+             await host.RunAsync();*/
 
 
             /*BaggageHandler provider = new BaggageHandler();
