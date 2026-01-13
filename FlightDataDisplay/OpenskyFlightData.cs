@@ -151,7 +151,7 @@ namespace FlightDataDisplay.Infrastructure
                 Console.WriteLine("No New/Updated Flight Data");
                 return Task.FromResult<BaggageInfo>(null);
             }
-            var flight = _flights.Values.LastOrDefault();
+            var flight = _flights.Values.OrderByDescending(x=>x.lastSeen).FirstOrDefault();
 
             var key = GetFlightKey(flight);
             _flights.TryRemove(key, out _);

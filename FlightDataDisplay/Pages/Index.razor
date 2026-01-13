@@ -58,7 +58,7 @@
         InvokeAsync(() =>
         {
             // Update or add baggage info
-            baggageInfo.OrderByDescending(x=>x.arrival.Date).ThenBy(x=>x.arrival.TimeOfDay);
+            //baggageInfo.OrderByDescending(x=>x.arrival.Date).ThenBy(x=>x.arrival.TimeOfDay);
             var existing = baggageInfo.FirstOrDefault(b => b.flight == info.flight);
             if (existing != null)
             {
@@ -91,13 +91,4 @@
         public void OnError(Exception error) { }
         public void OnCompleted() { }
     }
-
-    /* private class BaggageInfo
-    {
-    public int FlightNumber { get; set; }
-    public string Origin { get; set; } = "";
-    public string Arrical { get; set; } = "";
-    public int Carousel { get; set; }
-
-    }*/
 }
