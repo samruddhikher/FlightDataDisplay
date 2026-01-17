@@ -19,7 +19,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Set the upstream URL (replace with the parent repo URL)
-          UPSTREAM_URL="https://github.com/OWNER/PARENT_REPO.git"
+          UPSTREAM_URL="https://github.com/mihirk517/FlightDataDisplay.git"
           
           # Use GitHub CLI to sync the fork
           gh repo sync ${{ github.repository }} --source $UPSTREAM_URL --force
