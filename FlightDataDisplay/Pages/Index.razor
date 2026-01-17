@@ -1,0 +1,94 @@
+@page "/"
+@using FlightDataDisplay.Application
+@using FlightDataDisplay.Presentation
+@using FlightDataDisplay.Domain;
+@using Microsoft.AspNetCore.Mvc
+@inject BaggageHandler BaggageHandler
+@implements IDisposable
+
+<PageTitle>Flight Data Display</PageTitle>
+
+<h1>Flight Data Display</h1>
+
+<div class="flight-info">
+    <h2>Baggage Status</h2>
+
+    @if (baggageInfo.Any())
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Origin</th>
+                    <th>Flight</th>
+                    <th>Arrival Time</th>
+                    <th>Carousel</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var info in baggageInfo)
+                {
+                    <tr>
+                        <td>@info.from</td>
+                        <td>@info.flight</td>
+                        <td>@info.arrival.AddHours(1)</td>
+                        <td>@info.carousel</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p>Waiting for flight data...</p>
+    }
+</div>
+
+@code {
+    private List<BaggageInfo> baggageInfo = new();
+    private IDisposable? subscription;
+
+    protected override void OnInitialized()
+    {
+        // Subscribe to baggage updates
+        subscription = BaggageHandler.Subscribe(new BaggageObserver(OnBaggageUpdate));
+    }
+
+    private void OnBaggageUpdate(BaggageInfo info)
+    {
+        InvokeAsync(() =>
+        {
+            // Update or add baggage info
+            //baggageInfo.OrderByDescending(x=>x.arrival.Date).ThenBy(x=>x.arrival.TimeOfDay);
+            var existing = baggageInfo.FirstOrDefault(b => b.flight == info.flight);
+            if (existing != null)
+            {
+                baggageInfo.Remove(existing);
+            }
+            
+            baggageInfo.Add(info);
+
+
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        subscription?.Dispose();
+    }
+
+    // Helper class for UI updates
+    private class BaggageObserver : IObserver<BaggageInfo>
+    {
+        private readonly Action<BaggageInfo> _onNext;
+
+        public BaggageObserver(Action<BaggageInfo> onNext)
+        {
+            _onNext = onNext;
+        }
+
+        public void OnNext(BaggageInfo value) => _onNext(value);
+        public void OnError(Exception error) { }
+        public void OnCompleted() { }
+    }
+}
