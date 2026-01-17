@@ -1,0 +1,25 @@
+name: Update Fork from Upstream
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs every day at midnight UTC
+  workflow_dispatch:   # Allows you to trigger this manually from the "Actions" tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history for all branches and tags
+
+      - name: Sync upstream changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Set the upstream URL (replace with the parent repo URL)
+          UPSTREAM_URL="https://github.com/OWNER/PARENT_REPO.git"
+          
+          # Use GitHub CLI to sync the fork
+          gh repo sync ${{ github.repository }} --source $UPSTREAM_URL --force
