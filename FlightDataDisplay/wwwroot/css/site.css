@@ -1,66 +1,363 @@
+/* ===========================
+   Global Styles
+   =========================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+    background-color: #f5f7fa;
+    color: #1a1a1a;
+    line-height: 1.6;
+    height: 100%;
 }
 
-h1:focus {
-    outline: none;
+body {
+    overflow-x: hidden;
 }
 
-.page {
-    position: relative;
+/* ===========================
+   Header Section
+   =========================== */
+.header {
+    background: linear-gradient(135deg, #003d82 0%, #0056b3 100%);
+    color: white;
+    padding: 2rem 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+.header-title {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
 }
 
-main {
-    flex: 1;
+.header-icon {
+    font-size: 2.5rem;
 }
 
-.content {
-    padding-top: 1.1rem;
+.header h1 {
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: -0.5px;
 }
 
-.px-4 {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+.header-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    font-weight: 300;
 }
 
-.table {
+.header-info {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* ===========================
+   Main Content
+   =========================== */
+.main-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.content-header {
+    margin-bottom: 2rem;
+}
+
+.content-header h2 {
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: #003d82;
+    margin-bottom: 0.5rem;
+}
+
+.flight-count {
+    font-size: 0.95rem;
+    color: #666;
+}
+
+/* ===========================
+   Flight Table
+   =========================== */
+.flights-table-wrapper {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.flights-table {
     width: 100%;
     border-collapse: collapse;
+}
+
+.flights-table thead {
+    background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+    border-bottom: 2px solid #dee2e6;
+}
+
+.flights-table th {
+    padding: 1.25rem 1.5rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.flights-table tbody tr {
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.2s ease;
+}
+
+.flights-table tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: translateX(4px);
+    box-shadow: -4px 0 0 0 #0056b3;
+}
+
+.flights-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.flights-table td {
+    padding: 1.25rem 1.5rem;
+    font-size: 0.95rem;
+}
+
+/* ===========================
+   Table Cell Styles
+   =========================== */
+.flight-time {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    font-variant-numeric: tabular-nums;
+}
+
+.flight-date {
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+.flight-number {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0056b3;
+}
+
+.flight-origin {
+    font-size: 1rem;
+    color: #1a1a1a;
+    font-weight: 500;
+}
+
+.carousel-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    color: #0056b3;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-align: center;
+    min-width: 80px;
+}
+
+/* ===========================
+   Empty State
+   =========================== */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    color: #666;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: #999;
+    font-size: 1rem;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #0056b3;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
     margin-top: 1rem;
 }
 
-.table th,
-.table td {
-    padding: 0.75rem;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
-.table thead {
-    background-color: #f8f9fa;
+/* ===========================
+   Status Indicators
+   =========================== */
+.status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
 }
 
-.flight-info {
-    margin-top: 2rem;
+.status-arrived {
+    background-color: #e8f5e9;
+    color: #2e7d32;
 }
 
+.status-expected {
+    background-color: #e3f2fd;
+    color: #1565c0;
+}
+
+.status-delayed {
+    background-color: #fff3e0;
+    color: #e65100;
+}
+
+/* ===========================
+   Error UI
+   =========================== */
 #blazor-error-ui {
-    background: lightyellow;
+    background: #ffebee;
+    border-top: 3px solid #d32f2f;
     bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.15);
     display: none;
     left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    padding: 1rem 1.5rem;
     position: fixed;
     width: 100%;
     z-index: 1000;
+    color: #c62828;
+    font-weight: 500;
 }
 
 #blazor-error-ui .dismiss {
     cursor: pointer;
     position: absolute;
-    right: 0.75rem;
-    top: 0.5rem;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+    color: #d32f2f;
+    transition: color 0.2s;
+}
+
+#blazor-error-ui .dismiss:hover {
+    color: #b71c1c;
+}
+
+#blazor-error-ui .reload {
+    color: #d32f2f;
+    text-decoration: underline;
+    font-weight: 600;
+}
+
+/* ===========================
+   Responsive Design
+   =========================== */
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 1.5rem;
+    }
+
+    .header-subtitle {
+        font-size: 0.95rem;
+    }
+
+    .main-container {
+        padding: 1rem;
+    }
+
+    .flights-table th,
+    .flights-table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+    }
+
+    .flight-time {
+        font-size: 1rem;
+    }
+
+    .flight-number,
+    .flight-origin {
+        font-size: 0.9rem;
+    }
+
+    .carousel-badge {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        min-width: 70px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-container {
+        padding: 0 1rem;
+    }
+
+    .flights-table th:nth-child(3),
+    .flights-table td:nth-child(3) {
+        display: none; /* Hide date column on mobile */
+    }
+}
+
+/* ===========================
+   Utilities
+   =========================== */
+.text-muted {
+    color: #6c757d;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mb-2 {
+    margin-bottom: 1rem;
+}
+
+.mt-2 {
+    margin-top: 1rem;
 }

@@ -24,8 +24,9 @@ namespace FlightDataDisplay.Tests
             .AddJsonFile($"appsettings.Tests.json", optional: true)
             .AddUserSecrets<TestConfiguration>(optional: true)
             .AddEnvironmentVariables();
-
+            
             _configuration = builder.Build();
+            Console.WriteLine("Airport ICAO",_configuration["OpenSky:AirportIcao"]);
         }
     }
 

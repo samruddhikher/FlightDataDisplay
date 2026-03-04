@@ -1,83 +1,144 @@
 @page "/"
 @using FlightDataDisplay.Application
-@using FlightDataDisplay.Presentation
-@using FlightDataDisplay.Domain;
-@using Microsoft.AspNetCore.Mvc
+@using FlightDataDisplay.Domain
 @inject BaggageHandler BaggageHandler
 @implements IDisposable
 
-<PageTitle>Flight Data Display</PageTitle>
+<PageTitle>Arrivals - Frankfurt Airport</PageTitle>
 
-<h1>Flight Data Display</h1>
+<!-- Header Section -->
+<div class="header">
+    <div class="header-container">
+        <div class="header-title">
+            <span class="header-icon">✈️</span>
+            <h1>Frankfurt Airport</h1>
+        </div>
+        <div class="header-subtitle">Flight Arrivals</div>
+        <div class="header-info">
+            Last updated: @DateTime.Now.ToString("HH:mm:ss") • 
+            @baggageInfo.Count flight(s) tracked
+        </div>
+    </div>
+</div>
 
-<div class="flight-info">
-    <h2>Baggage Status</h2>
+<!-- Main Content -->
+<div class="main-container">
+    <div class="content-header">
+        <h2>Recent Arrivals</h2>
+        <div class="flight-count">
+            Showing @baggageInfo.Count arrival(s)
+        </div>
+    </div>
 
     @if (baggageInfo.Any())
     {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Origin</th>
-                    <th>Flight</th>
-                    <th>Arrival Time</th>
-                    <th>Carousel</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var info in baggageInfo)
-                {
+        <div class="flights-table-wrapper">
+            <table class="flights-table">
+                <thead>
                     <tr>
-                        <td>@info.from</td>
-                        <td>@info.flight</td>
-                        <td>@info.arrival.AddHours(1)</td>
-                        <td>@info.carousel</td>
+                        <th>Time</th>
+                        <th>Flight</th>
+                        <th>From</th>
+                        <th>Baggage Claim</th>
                     </tr>
-                }
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var info in GetSortedFlights())
+                    {
+                        <tr>
+                            <td>
+                                <div class="flight-time">@info.arrival.ToString("HH:mm")</div>
+                                <div class="flight-date">@info.arrival.ToString("dd MMM yyyy")</div>
+                            </td>
+                            <td>
+                                <div class="flight-number">@info.flight</div>
+                            </td>
+                            <td>
+                                <div class="flight-origin">@info.from</div>
+                            </td>
+                            <td>
+                                <span class="carousel-badge">
+                                    Carousel @info.carousel
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     }
     else
     {
-        <p>Waiting for flight data...</p>
+        <div class="empty-state">
+            <div class="empty-state-icon">✈️</div>
+            <h3>Waiting for flight data...</h3>
+            <p>Flight information will appear here as arrivals are tracked</p>
+            <div class="loading-spinner"></div>
+        </div>
     }
 </div>
 
 @code {
     private List<BaggageInfo> baggageInfo = new();
     private IDisposable? subscription;
+    private System.Threading.Timer? updateTimer;
 
     protected override void OnInitialized()
     {
         // Subscribe to baggage updates
         subscription = BaggageHandler.Subscribe(new BaggageObserver(OnBaggageUpdate));
+
+        // Auto-refresh UI every 5 seconds
+        updateTimer = new System.Threading.Timer(
+            _ => InvokeAsync(StateHasChanged),
+            null,
+            TimeSpan.FromSeconds(5),
+            TimeSpan.FromSeconds(5)
+        );
     }
 
     private void OnBaggageUpdate(BaggageInfo info)
     {
         InvokeAsync(() =>
         {
-            // Update or add baggage info
-            //baggageInfo.OrderByDescending(x=>x.arrival.Date).ThenBy(x=>x.arrival.TimeOfDay);
+            // Remove existing entry if present
             var existing = baggageInfo.FirstOrDefault(b => b.flight == info.flight);
             if (existing != null)
             {
                 baggageInfo.Remove(existing);
             }
-            
+
+            // Add new entry
             baggageInfo.Add(info);
 
+            // Keep only last 50 flights
+            if (baggageInfo.Count > 50)
+            {
+                baggageInfo = baggageInfo
+                    .OrderByDescending(x => x.arrival)
+                    .Take(50)
+                    .ToList();
+            }
 
             StateHasChanged();
         });
     }
 
+    private IEnumerable<BaggageInfo> GetSortedFlights()
+    {
+        // Sort by arrival time (newest first)
+        return baggageInfo
+            .OrderByDescending(x => x.arrival)
+            .ToList();
+    }
+
     public void Dispose()
     {
         subscription?.Dispose();
+        updateTimer?.Dispose();
     }
 
-    // Helper class for UI updates
+    // Helper observer class
     private class BaggageObserver : IObserver<BaggageInfo>
     {
         private readonly Action<BaggageInfo> _onNext;
