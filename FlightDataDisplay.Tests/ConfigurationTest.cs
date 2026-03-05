@@ -18,6 +18,7 @@ public class ConfigurationTest
         var clientId = _testConfiguration.GetOpenSkyClientId();
         var clientSecret = _testConfiguration.GetOpenSkyClientSecret();
         var AirportIcao = _testConfiguration.GetOpenSkyAirportIcao();
+        Console.WriteLine($"{clientId}, {clientSecret}");
 
         //clientId.Should().NotBeNullOrEmpty();
         //clientSecret.Should().NotBeNullOrEmpty();  
