@@ -16,7 +16,7 @@ jobs:
 
       - name: Sync upstream changes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.SYNC_PAT }}
         run: |
           # Set the upstream URL (replace with the parent repo URL)
           UPSTREAM_URL="https://github.com/mihirk517/FlightDataDisplay.git"
